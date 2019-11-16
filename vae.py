@@ -6,7 +6,7 @@ from decoder import Decoder
 
 class VAE(nn.module):
 
-    def __init__(self, batch_size, vocab_size, emb_size, hid_size, latent_size, padding_idx):
+    def __init__(self, batch_size, vocab_size, emb_size, hid_size, latent_size, padding_idx, rnn_size, rnn_num_layers):
         super.__init__()
 
         self.batch_size = batch_size
@@ -22,7 +22,7 @@ class VAE(nn.module):
         self.var_creater = nn.Linear(hid_size, latent_size)
         
         self.dist_sample = self._dist_sample
-        self.decoder = nn.Sequential()
+        self.decoder = Decoder(vocab_size, latent_size, rnn_size, rnn_num_layers)
 
     def forward(self, x):
         emb = self.emb_layer(x)
