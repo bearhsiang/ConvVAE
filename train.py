@@ -20,24 +20,24 @@ def criterion(logits, aux_logits, tgt, ignore_index, mean, logvar, vocab_size):
     return cnn_loss, rnn_loss, kl_loss
     
 def id2sent(s, vocab_inv):
-    return ' '.join([vocab_inv[i] for i in s])
+    return ' '.join(['' if vocab_inv[i] == '<PAD>' else vocab_inv[i] for i in s])
 
 if __name__ == '__main__':
 
     config = {
         'data_dir'          :'./data_20k/',
-        'batch_size'        :8,
-        'doc_max_len'       :180, ## 1 -> 180, 2-> 81
+        'batch_size'        :16,
+        'doc_max_len'       :81, ## 1 -> 180, 2-> 81
         'emb_size'          :1024,
         'hid_size'          :512,
         'latent_size'       :512,
-        'rnn_size'          :512,
+        'rnn_size'          :2048,
         'rnn_num_layers'    :1,
-        'lr'                :0.001,
-        'w_cnn_loss'        :0.2,
+        'lr'                :0.0001,
+        'w_cnn_loss'        :0.1,
         'w_rnn_loss'        :1,
         'w_kl_loss_rate'    :0.01,
-        'cnn_type': '1',
+        'cnn_type': '2',
     }
     w_kl_loss = 0
     use_wandb = True
@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-    epochs = 10
+    epochs = 20
     
     model = VAE(
         vocab_size=len(vocab),
@@ -94,6 +94,7 @@ if __name__ == '__main__':
             optimizer.zero_grad()
 
             document = document.to(device)
+            # print(document.shape)
             logits, aux_logits, mean, logvar = model(document)
 
             logits = logits[:, :config['doc_max_len']]
@@ -125,8 +126,8 @@ if __name__ == '__main__':
                 'rnn loss': rnn_loss.item(),
                 'kl loss': min(kl_loss.item(), 1e4),
                 'ave loss': train_loss/total,
-                'mean': mean[0].detach().cpu().numpy()[:10],
-                'logvar': logvar[0].detach().cpu().numpy()[:10],
+                'mean': mean[0][0].item(),
+                'logvar': logvar[0][0].item(),
                 'w_kl_loss': w_kl_loss
             }
 
@@ -135,6 +136,7 @@ if __name__ == '__main__':
             else:
                 print(info)
 
+        continue
 
         valid_loss, total = 0, 0
         model.eval()
@@ -179,4 +181,4 @@ if __name__ == '__main__':
                 else:
                     print(info)
         
-        w_kl_loss = max(config['w_kl_loss_rate']+w_kl_loss, 1)
+        w_kl_loss = min(config['w_kl_loss_rate']+w_kl_loss, 1)

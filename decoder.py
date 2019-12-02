@@ -23,7 +23,6 @@ class Decoder(nn.Module):
 
     def forward(self, latent):
         aux_logits = self._decode_cnn(latent)
-        # print('shape after decoder = {}'.format(aux_logits.shape))
         logits = self._decode_rnn(aux_logits)
         return logits, aux_logits
     

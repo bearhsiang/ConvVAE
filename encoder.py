@@ -16,5 +16,4 @@ class Encoder(nn.Module):
         
         input = torch.transpose(input, 1, 2)
         result = self.cnn(input)
-        # print('shape after encoder = {}'.format(result.shape))
         return result.squeeze(2)
