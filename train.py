@@ -8,6 +8,8 @@ import os
 from torch.utils.data import DataLoader
 import json
 from tqdm import tqdm
+import argparse
+import sys
 
 def criterion(logits, aux_logits, tgt, ignore_index, mean, logvar, vocab_size):
     logits = logits.contiguous().view(-1, vocab_size)
@@ -23,6 +25,29 @@ def id2sent(s, vocab_inv):
     return ' '.join(['' if vocab_inv[i] == '<PAD>' else vocab_inv[i] for i in s])
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--data_dir',       default='./data_20k/', type=str)
+    parser.add_argument('--batch_size',     default=16, type=int)
+    parser.add_argument('--doc_max_len',    default=180, type=int)
+    parser.add_argument('--emb_size',       default=1024, type=int)
+    parser.add_argument('--hid_size',       default=512, type=int)
+    parser.add_argument('--latent_size',    default=512, type=int)
+    parser.add_argument('--rnn_size',       default=2048, type=int)
+    parser.add_argument('--rnn_num_layers', default=1, type=int)
+    parser.add_argument('--lr',             default=0.0001, type=float)
+    parser.add_argument('--w_cnn_loss',     default=0.1, type=float)
+    parser.add_argument('--w_rnn_loss',     default=1.0, type=float)
+    parser.add_argument('--cnn_type',       default='1', type=str)
+
+    args = parser.parse_args()
+    import wandb
+    wandb.init(
+        project='CNN VAE test',
+        config = args
+    )
+
+    exit()
 
     config = {
         'data_dir'          :'./data_20k/',
@@ -43,19 +68,19 @@ if __name__ == '__main__':
     use_wandb = True
 
     print('[INFO] load vocabfile')
-    vocab = json.load(open(os.path.join(config['data_dir'], 'vocab.json'), 'r'))
+    vocab = json.load(open(os.path.join(args.data_dir, 'vocab.json'), 'r'))
     vocab_inv = {a:b for b, a in vocab.items()}
     print('[INFO] load train data')
     train_loader = DataLoader(
-        Dataset(os.path.join(config['data_dir'], 'train_seq.json'),
-            doc_max_len=config['doc_max_len'], pad_idx=vocab['<PAD>']), 
-        batch_size=config['batch_size'], shuffle=True
+        Dataset(os.path.join(args.data_dir, 'train_seq.json'),
+            doc_max_len=args.doc_max_len, pad_idx=vocab['<PAD>']), 
+        batch_size=args.batch_size, shuffle=True
     )
     print('[INFO] load valid data')
     valid_loader = DataLoader(
-        Dataset(os.path.join(config['data_dir'], 'valid_seq.json'), 
-            doc_max_len=config['doc_max_len'], pad_idx=vocab['<PAD>']),
-        batch_size=config['batch_size'], shuffle=False
+        Dataset(os.path.join(args.data_dir, 'valid_seq.json'), 
+            doc_max_len=args.doc_max_len, pad_idx=vocab['<PAD>']),
+        batch_size=args.batch_size, shuffle=False
     )
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -64,22 +89,22 @@ if __name__ == '__main__':
     
     model = VAE(
         vocab_size=len(vocab),
-        emb_size = config['emb_size'],
-        hid_size = config['hid_size'],
-        latent_size = config['latent_size'],
+        emb_size = args.emb_size,
+        hid_size = args.hid_size,
+        latent_size = args.latent_size,
         padding_idx = vocab['<PAD>'],
-        rnn_size = config['rnn_size'],
-        rnn_num_layers = config['rnn_num_layers'],
-        cnn_type = config['cnn_type'],
+        rnn_size = args.rnn_size,
+        rnn_num_layers = args.rnn_num_layers,
+        cnn_type = args.cnn_type,
         ).to(device)
 
-    optimizer = optim.RMSprop(model.parameters(), lr=config['lr'])
+    optimizer = optim.RMSprop(model.parameters(), lr=args.lr)
 
     if use_wandb:
         import wandb
         wandb.init(
-            project='CNN VAE',
-            config = config,
+            project='CNN VAE test',
+            config = args
         )
         
     for epoch in range(epochs):
